@@ -1,0 +1,5 @@
+﻿pyserial
+# Para o detector_sono.py (ja usados por ele):
+opencv-python
+mediapipe
+numpy

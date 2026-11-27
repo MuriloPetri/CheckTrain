@@ -1,0 +1,9 @@
+# Token do bot do Telegram (NUNCA publicar)
+Site/telegram.json
+
+# Histórico gerado ao rodar o painel
+Site/registros.csv
+
+# Python
+__pycache__/
+*.pyc

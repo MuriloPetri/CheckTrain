@@ -1,0 +1,186 @@
+{
+  "maquinistas": [
+    {
+      "id": "M01",
+      "nome": "Deivid",
+      "cargo": "Maquinista",
+      "matricula": "MQ-1001",
+      "epc": "E2801160600002187F218050",
+      "telefone": "(11) 90000-0001",
+      "base": "Estação Central",
+      "endereco": "Rua das Palmeiras, 120 - Centro",
+      "trem": "Trem T-102",
+      "viagem_min": 14,
+      "turno": {
+        "inicio": "06:00",
+        "fim": "14:00",
+        "dias": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "M02",
+      "nome": "Enzo",
+      "cargo": "Supervisor",
+      "matricula": "SP-2001",
+      "epc": "E2801160600002187F2144F1",
+      "telefone": "(11) 90000-0002",
+      "base": "Estação Central",
+      "endereco": "Av. Brasil, 845 - Jardim América",
+      "trem": "Supervisão geral",
+      "viagem_min": 18,
+      "turno": {
+        "inicio": "08:00",
+        "fim": "17:00",
+        "dias": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "id": "M03",
+      "nome": "Ana",
+      "cargo": "Operadora",
+      "matricula": "OP-3001",
+      "epc": "300833B2DDD9014000000001",
+      "telefone": "(11) 90000-0003",
+      "base": "Pátio Norte",
+      "endereco": "Rua dos Ipês, 33 - Vila Nova",
+      "trem": "Trem T-205",
+      "viagem_min": 10,
+      "turno": {
+        "inicio": "14:00",
+        "fim": "22:00",
+        "dias": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    },
+    {
+      "id": "M04",
+      "nome": "Carlos Mendes",
+      "cargo": "Maquinista",
+      "matricula": "MQ-1002",
+      "epc": "",
+      "telefone": "(11) 90000-0004",
+      "base": "Pátio Norte",
+      "endereco": "Rua Sete de Setembro, 501 - São José",
+      "trem": "Trem T-310",
+      "viagem_min": 22,
+      "turno": {
+        "inicio": "22:00",
+        "fim": "06:00",
+        "dias": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          6
+        ]
+      }
+    },
+    {
+      "id": "M05",
+      "nome": "Juliana Rocha",
+      "cargo": "Maquinista",
+      "matricula": "MQ-1003",
+      "epc": "",
+      "telefone": "(11) 90000-0005",
+      "base": "Estação Jardim",
+      "endereco": "Rua Amazonas, 77 - Bela Vista",
+      "trem": "Trem T-118",
+      "viagem_min": 12,
+      "turno": {
+        "inicio": "14:00",
+        "fim": "22:00",
+        "dias": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      }
+    },
+    {
+      "id": "M06",
+      "nome": "Rafael Lima",
+      "cargo": "Maquinista",
+      "matricula": "MQ-1004",
+      "epc": "",
+      "telefone": "(11) 90000-0006",
+      "base": "Estação Central",
+      "endereco": "Travessa das Flores, 9 - Centro",
+      "trem": "Trem T-221",
+      "viagem_min": 8,
+      "turno": {
+        "inicio": "06:00",
+        "fim": "14:00",
+        "dias": [
+          3,
+          4,
+          5,
+          6,
+          0
+        ]
+      }
+    }
+  ],
+  "motoristas": [
+    {
+      "id": "D01",
+      "nome": "Paulo Ribeiro",
+      "veiculo": "Spin branca",
+      "placa": "ABC-1D23",
+      "telefone": "(11) 98000-0001",
+      "distancia_min": 6
+    },
+    {
+      "id": "D02",
+      "nome": "Fernanda Alves",
+      "veiculo": "Onix prata",
+      "placa": "DEF-4G56",
+      "telefone": "(11) 98000-0002",
+      "distancia_min": 11
+    },
+    {
+      "id": "D03",
+      "nome": "Márcio Teixeira",
+      "veiculo": "Doblò branca",
+      "placa": "GHI-7J89",
+      "telefone": "(11) 98000-0003",
+      "distancia_min": 4
+    },
+    {
+      "id": "D04",
+      "nome": "Luciana Prado",
+      "veiculo": "HB20 preto",
+      "placa": "JKL-0M12",
+      "telefone": "(11) 98000-0004",
+      "distancia_min": 15
+    },
+    {
+      "id": "D05",
+      "nome": "Roberto Nunes",
+      "veiculo": "Spin prata",
+      "placa": "MNO-3P45",
+      "telefone": "(11) 98000-0005",
+      "distancia_min": 9
+    }
+  ]
+}

@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel do Maquinista</title>
+<style>
+  :root {
+    --bg: #0f1216; --card: #181c22; --borda: #262c35; --texto: #e8ebef; --suave: #8b95a3;
+    --verde: #22c55e; --amarelo: #eab308; --vermelho: #ef4444; --azul: #3b82f6; --cinza: #64748b;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         background: var(--bg); color: var(--texto); }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+           padding: 14px 20px; border-bottom: 1px solid var(--borda); }
+  header h1 { margin: 0; font-size: 18px; font-weight: 650; }
+  header .dir { display: flex; align-items: center; gap: 10px; color: var(--suave); font-size: 13px; }
+  .tag-demo { background: var(--amarelo); color: #000; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+  main { max-width: 1200px; margin: 0 auto; padding: 18px 16px; display: grid; gap: 16px;
+         grid-template-columns: repeat(12, 1fr); }
+  .card { background: var(--card); border: 1px solid var(--borda); border-radius: 10px; padding: 16px; min-width: 0; }
+  .card h2 { margin: 0 0 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--suave); font-weight: 600; }
+  .c-video { grid-column: span 7; }
+  .c-estado { grid-column: span 5; }
+  .c-operador { grid-column: span 5; }
+  .c-conexoes { grid-column: span 5; }
+  .c-eventos { grid-column: span 7; grid-row: span 2; }
+  @media (max-width: 860px) { .c-video, .c-estado, .c-operador, .c-conexoes, .c-eventos { grid-column: span 12; grid-row: auto; } }
+
+  /* Vídeo */
+  .video-box { position: relative; aspect-ratio: 4 / 3; background: #000; border-radius: 8px; overflow: hidden; }
+  .video-box img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .video-box .aviso { position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+                      color: var(--suave); font-size: 14px; padding: 20px; }
+  .ao-vivo { position: absolute; top: 10px; right: 10px; background: var(--vermelho); color: #fff; font-size: 11px;
+             font-weight: 700; padding: 3px 8px; border-radius: 4px; letter-spacing: .05em; }
+  .video-box.dormindo { outline: 4px solid var(--vermelho); outline-offset: -4px; }
+
+  /* Estado do sono */
+  .estado-grande { border-radius: 10px; padding: 26px 18px; text-align: center; transition: background .25s; }
+  .estado-grande .rot { font-size: clamp(34px, 7vw, 56px); font-weight: 800; letter-spacing: .02em; }
+  .estado-grande .sub { margin-top: 6px; font-size: 15px; opacity: .9; }
+  .e-ACORDADO  { background: rgba(34,197,94,.15);  color: var(--verde); }
+  .e-SONOLENTO { background: rgba(234,179,8,.15);  color: var(--amarelo); }
+  .e-DORMINDO  { background: var(--vermelho); color: #fff; animation: pisca 0.8s infinite; }
+  .e-SEM_ROSTO { background: rgba(100,116,139,.18); color: #cbd5e1; }
+  .e-DESCONHECIDO { background: rgba(100,116,139,.12); color: var(--suave); }
+  @keyframes pisca { 50% { background: #7f1d1d; } }
+  .metricas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+  .metrica { background: var(--bg); border: 1px solid var(--borda); border-radius: 8px; padding: 10px 12px; }
+  .metrica .v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .metrica .l { font-size: 12px; color: var(--suave); margin-top: 2px; }
+  .barra { height: 6px; background: var(--borda); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .barra > div { height: 100%; background: var(--verde); width: 0; transition: width .3s, background .3s; }
+
+  /* Operador */
+  .operador { display: flex; gap: 14px; align-items: center; }
+  .avatar { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; flex: none;
+            background: var(--azul); font-size: 26px; font-weight: 700; color: #fff; }
+  .avatar.vazio { background: var(--borda); color: var(--suave); }
+  .operador .nome { font-size: 24px; font-weight: 700; }
+  .operador .cargo { color: var(--suave); }
+  .info-linha { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 7px 0;
+                border-top: 1px solid var(--borda); color: var(--suave); }
+  .info-linha b { color: var(--texto); font-weight: 600; text-align: right; word-break: break-all; }
+  .vinculo { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+
+  /* Conexões */
+  .conexao { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--borda); }
+  .conexao:first-of-type { border-top: 0; padding-top: 0; }
+  .ponto { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; flex: none; background: var(--cinza); }
+  .ponto.ok { background: var(--verde); box-shadow: 0 0 8px var(--verde); }
+  .ponto.wait { background: var(--amarelo); }
+  .ponto.err { background: var(--vermelho); }
+  .conexao .t { font-weight: 600; font-size: 14px; }
+  .conexao .m { font-size: 12px; color: var(--suave); margin-top: 2px; word-break: break-word; }
+  .controles { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  button, select { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--borda);
+                   background: var(--bg); color: var(--texto); cursor: pointer; }
+  button:hover { border-color: var(--suave); }
+  button.prim { background: var(--azul); border-color: var(--azul); color: #fff; }
+
+  /* Eventos */
+  .eventos-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .eventos-topo h2 { margin: 0; }
+  .lista { max-height: 420px; overflow-y: auto; }
+  .evento { display: grid; grid-template-columns: 70px 1fr; gap: 10px; padding: 8px 0 8px 10px;
+            border-left: 3px solid var(--cinza); margin-bottom: 4px; font-size: 14px; }
+  .evento .h { color: var(--suave); font-variant-numeric: tabular-nums; font-size: 13px; }
+  .evento.critico { border-color: var(--vermelho); background: rgba(239,68,68,.08); }
+  .evento.atencao { border-color: var(--amarelo); }
+  .evento.ok { border-color: var(--verde); }
+  .evento.info { border-color: var(--azul); }
+  .vazio-txt { color: var(--suave); font-size: 14px; padding: 12px 0; }
+  .ranking { margin-top: 12px; font-size: 13px; color: var(--suave); }
+
+  /* Alerta de tela cheia */
+  #alerta { position: fixed; inset: 0; background: rgba(127,29,29,.92); display: none; z-index: 10;
+            align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 20px; }
+  #alerta.on { display: flex; animation: piscaAlerta 0.8s infinite; }
+  @keyframes piscaAlerta { 50% { background: rgba(220,38,38,.95); } }
+  #alerta .grande { font-size: clamp(40px, 10vw, 96px); font-weight: 900; color: #fff; }
+  #alerta .quem { font-size: clamp(20px, 4vw, 34px); color: #fff; margin: 8px 0 22px; }
+  #alerta button { font-size: 16px; padding: 10px 22px; background: #fff; color: #7f1d1d; border: 0; font-weight: 700; }
+  /* Tela de login (RFID) */
+  #telaLogin { position: fixed; inset: 0; z-index: 5; background: radial-gradient(circle at 50% 30%, #1b2330, var(--bg) 70%);
+               display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
+  #telaLogin[hidden] { display: none; }
+  .login-card { width: 100%; max-width: 440px; background: var(--card); border: 1px solid var(--borda); border-radius: 14px;
+                padding: 28px 24px; text-align: center; }
+  .login-card h1 { margin: 0 0 4px; font-size: 22px; }
+  .login-card .sub { color: var(--suave); font-size: 14px; margin-bottom: 26px; }
+  .rfid-icone { width: 120px; height: 120px; margin: 0 auto 18px; position: relative; display: grid; place-items: center; }
+  .rfid-icone .cracha { width: 58px; height: 80px; border: 3px solid var(--azul); border-radius: 8px; position: relative; z-index: 1;
+                        background: var(--card); }
+  .rfid-icone .cracha::before { content: ""; position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+                                width: 22px; height: 22px; border-radius: 50%; background: var(--azul); }
+  .rfid-icone .cracha::after { content: ""; position: absolute; bottom: 14px; left: 10px; right: 10px; height: 4px;
+                               background: var(--borda); border-radius: 2px; box-shadow: 0 -9px 0 var(--borda); }
+  .rfid-icone .onda { position: absolute; inset: 0; border: 2px solid var(--azul); border-radius: 50%; opacity: 0;
+                      animation: onda 2.4s infinite; }
+  .rfid-icone .onda:nth-child(2) { animation-delay: .8s; }
+  .rfid-icone .onda:nth-child(3) { animation-delay: 1.6s; }
+  @keyframes onda { 0% { transform: scale(.45); opacity: .9; } 100% { transform: scale(1.15); opacity: 0; } }
+  .login-msg { font-size: 18px; font-weight: 650; }
+  .login-status { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 13px; color: var(--suave); }
+  .login-status .ponto { margin-top: 0; }
+  .login-erro { margin-top: 18px; background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.4); color: #fca5a5;
+                border-radius: 8px; padding: 10px 12px; font-size: 13px; word-break: break-all; }
+  .login-teste { margin-top: 26px; border-top: 1px solid var(--borda); padding-top: 18px; }
+  .login-teste summary { cursor: pointer; color: var(--suave); font-size: 13px; }
+  .login-teste .lista-func { display: grid; gap: 8px; margin-top: 14px; }
+  .login-teste button { display: flex; justify-content: space-between; width: 100%; padding: 10px 14px; text-align: left; }
+  .login-teste button span { color: var(--suave); }
+  .usuario { display: flex; align-items: center; gap: 8px; color: var(--texto); }
+  .usuario .mini { width: 26px; height: 26px; border-radius: 50%; background: var(--azul); color: #fff; display: grid;
+                   place-items: center; font-size: 12px; font-weight: 700; }
+
+  /* Abas */
+  nav.abas { display: flex; gap: 4px; padding: 0 16px; border-bottom: 1px solid var(--borda); overflow-x: auto;
+             max-width: 100%; }
+  nav.abas button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 12px 14px;
+                    color: var(--suave); font-size: 14px; white-space: nowrap; }
+  nav.abas button.ativa { color: var(--texto); border-bottom-color: var(--azul); }
+  nav.abas .cont { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 9px;
+                   background: var(--vermelho); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; }
+  .c-meia { grid-column: span 6; } .c-lista { grid-column: span 5; } .c-perfil { grid-column: span 7; }
+  .c-cheia { grid-column: span 12; }
+  @media (max-width: 860px) { .c-meia, .c-lista, .c-perfil { grid-column: span 12; } }
+
+  /* Listas / badges */
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px;
+           letter-spacing: .03em; white-space: nowrap; }
+  .b-verde { background: rgba(34,197,94,.15); color: var(--verde); }
+  .b-amarelo { background: rgba(234,179,8,.15); color: var(--amarelo); }
+  .b-vermelho { background: rgba(239,68,68,.18); color: #fca5a5; }
+  .b-azul { background: rgba(59,130,246,.18); color: #93c5fd; }
+  .b-cinza { background: rgba(100,116,139,.2); color: #cbd5e1; }
+  .item { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 8px; cursor: pointer;
+          border: 1px solid transparent; }
+  .item:hover { background: var(--bg); }
+  .item.sel { border-color: var(--azul); background: rgba(59,130,246,.07); }
+  .item .avatar { width: 40px; height: 40px; font-size: 16px; }
+  .item .nm { font-weight: 650; }
+  .item .sb { font-size: 12px; color: var(--suave); margin-top: 2px; }
+  .item .badges { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+  .perfil-topo { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .perfil-topo .avatar { width: 72px; height: 72px; font-size: 30px; }
+  .perfil-topo .nome { font-size: 24px; font-weight: 750; }
+  .grid-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin: 12px 0; }
+  .grid-info div { background: var(--bg); border: 1px solid var(--borda); border-radius: 8px; padding: 8px 10px; font-size: 14px; }
+  .grid-info span { display: block; font-size: 11px; color: var(--suave); text-transform: uppercase; letter-spacing: .05em; }
+  .escala { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 8px; }
+  .escala div { text-align: center; padding: 8px 2px; border-radius: 6px; background: var(--bg); border: 1px solid var(--borda);
+                font-size: 12px; }
+  .escala div b { display: block; font-size: 13px; margin-bottom: 4px; }
+  .escala .trab { border-color: rgba(59,130,246,.5); color: #93c5fd; }
+  .escala .hoje { outline: 2px solid var(--azul); }
+  .escala .folga { color: var(--suave); }
+  h3 { font-size: 13px; margin: 18px 0 6px; color: var(--suave); text-transform: uppercase; letter-spacing: .06em; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--suave);
+       font-weight: 600; padding: 8px; border-bottom: 1px solid var(--borda); }
+  td { padding: 10px 8px; border-bottom: 1px solid var(--borda); vertical-align: middle; }
+  .tabela-wrap { overflow-x: auto; }
+
+  /* Sala de controle */
+  .sala-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .chave { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; }
+  .chave input { display: none; }
+  .chave .trilho { width: 40px; height: 22px; border-radius: 11px; background: var(--borda); position: relative; transition: .2s; }
+  .chave .trilho::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%;
+                          background: #fff; transition: .2s; }
+  .chave input:checked + .trilho { background: var(--verde); }
+  .chave input:checked + .trilho::after { left: 21px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+  @media (max-width: 600px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .sol, .corrida { border: 1px solid var(--borda); border-radius: 8px; padding: 12px; margin-bottom: 10px; background: var(--bg); }
+  .sol.alta { border-color: rgba(239,68,68,.6); }
+  .sol .linha1, .corrida .linha1 { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .sol .rota, .corrida .rota { font-size: 13px; color: var(--suave); margin: 6px 0; }
+  .sol .acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .sol select { flex: 1; min-width: 160px; }
+  .etapas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 10px; }
+  .etapas div { height: 6px; border-radius: 3px; background: var(--borda); position: relative; overflow: hidden; }
+  .etapas div > i { position: absolute; inset: 0; width: 0; background: var(--azul); }
+  .etapas-rot { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; font-size: 11px; color: var(--suave); margin-top: 4px; }
+  .etapas-rot .at { color: var(--texto); font-weight: 600; }
+  .form-sol { display: flex; gap: 8px; flex-wrap: wrap; }
+  .form-sol select { flex: 1; min-width: 150px; }
+  .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--vermelho); color: #fff;
+           padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 20; display: none; }
+
+  #offline { display: none; background: var(--vermelho); color: #fff; text-align: center; padding: 8px; font-size: 14px; }
+</style>
+</head>
+<body>
+<div id="offline">Sem conexão com o servidor (servidor.py está rodando?)</div>
+
+<!-- ===== TELA DE LOGIN (pelo crachá RFID) ===== -->
+<div id="telaLogin">
+  <div class="login-card">
+    <h1>Painel do Maquinista</h1>
+    <div class="sub">Monitoramento de sono na cabine</div>
+    <div class="rfid-icone">
+      <div class="onda"></div><div class="onda"></div><div class="onda"></div>
+      <div class="cracha"></div>
+    </div>
+    <div class="login-msg">Aproxime seu crachá do leitor</div>
+    <div class="login-status"><span class="ponto" id="loginPonto"></span><span id="loginStatus">—</span></div>
+    <div class="login-erro" id="loginErro" hidden></div>
+    <details class="login-teste">
+      <summary>Entrar sem o leitor (teste)</summary>
+      <div class="lista-func" id="listaFunc"><div class="vazio-txt">Carregando funcionários...</div></div>
+    </details>
+  </div>
+</div>
+
+<header>
+  <h1>Painel do Maquinista — Sono + Crachá RFID</h1>
+  <div class="dir">
+    <span id="tagDemo" class="tag-demo" hidden>MODO DEMO</span>
+    <span class="usuario" id="usuario" hidden><span class="mini" id="usuarioIni">?</span><span id="usuarioNome"></span></span>
+    <button id="btnSair">Sair</button>
+    <button id="btnSom">🔇 Ativar som de alerta</button>
+    <span id="relogio">--:--:--</span>
+  </div>
+</header>
+
+<nav class="abas" id="abas">
+  <button data-aba="monitor" class="ativa">Monitoramento</button>
+  <button data-aba="maquinistas">Maquinistas</button>
+  <button data-aba="motoristas">Motoristas</button>
+  <button data-aba="sala">Sala de controle <span class="cont" id="contSol" hidden>0</span></button>
+</nav>
+
+<main class="view" id="v-monitor">
+  <section class="card c-video">
+    <h2>Câmera ao vivo (<span id="fonteCamera">ESP32-CAM</span>)</h2>
+    <div class="video-box" id="videoBox">
+      <img id="video" alt="" hidden>
+      <div class="aviso" id="videoAviso">Aguardando vídeo do detector...</div>
+      <span class="ao-vivo" id="aoVivo" hidden>● AO VIVO</span>
+    </div>
+  </section>
+
+  <section class="card c-estado">
+    <h2>Estado do maquinista (ESP32-CAM)</h2>
+    <div id="estadoBox" class="estado-grande e-DESCONHECIDO">
+      <div class="rot" id="estadoRot">—</div>
+      <div class="sub" id="estadoSub">Aguardando detector...</div>
+    </div>
+    <div class="metricas">
+      <div class="metrica">
+        <div class="v" id="mEar">—</div><div class="l">EAR (abertura dos olhos)</div>
+        <div class="barra"><div id="barEar"></div></div>
+      </div>
+      <div class="metrica"><div class="v" id="mFechado">—</div><div class="l">Olhos fechados</div></div>
+      <div class="metrica"><div class="v" id="mDesde">—</div><div class="l">Neste estado desde</div></div>
+    </div>
+  </section>
+
+  <section class="card c-operador">
+    <h2>Quem está operando (RFID)</h2>
+    <div class="operador">
+      <div class="avatar vazio" id="avatar">?</div>
+      <div>
+        <div class="nome" id="opNome">Ninguém identificado</div>
+        <div class="cargo" id="opCargo">Aproxime o crachá do leitor</div>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <div class="info-linha"><span>No turno desde</span><b id="opDesde">—</b></div>
+      <div class="info-linha"><span>EPC do crachá</span><b id="opEpc">—</b></div>
+      <div class="info-linha"><span>Alertas de sono neste operador</span><b id="opAlertas">0</b></div>
+      <div class="info-linha"><span>Última leitura RFID</span><b id="ultLeitura">—</b></div>
+    </div>
+    <div class="vinculo" id="vinculo"></div>
+    <div class="controles">
+      <button id="btnEncerrar">Encerrar turno</button>
+      <button id="btnVerPerfil">Ver perfil</button>
+    </div>
+  </section>
+
+  <section class="card c-conexoes">
+    <h2>Conexões</h2>
+    <div class="conexao">
+      <div class="ponto" id="pDet"></div>
+      <div style="flex:1;min-width:0">
+        <div class="t">Detector de sono <span style="color:var(--suave);font-weight:400">(detector_sono.py)</span></div>
+        <div class="m" id="mDet">—</div>
+        <div class="controles">
+          <button id="btnDetIniciar">Reiniciar</button>
+          <button id="btnDetParar">Parar</button>
+        </div>
+      </div>
+    </div>
+    <div class="conexao">
+      <div class="ponto" id="pRfid"></div>
+      <div style="flex:1;min-width:0">
+        <div class="t">Leitor RFID <span style="color:var(--suave);font-weight:400">(ParteRFID.ino via USB)</span></div>
+        <div class="m" id="mRfid">—</div>
+        <div class="controles">
+          <select id="selPorta"><option value="AUTO">Automático</option></select>
+          <button id="btnPortas">↻</button>
+          <button class="prim" id="btnPorta">Usar porta</button>
+        </div>
+      </div>
+    </div>
+    <div class="conexao">
+      <div class="ponto" id="pTg"></div>
+      <div style="flex:1;min-width:0">
+        <div class="t">Bot do Telegram <span style="color:var(--suave);font-weight:400">(solicitações de motorista)</span></div>
+        <div class="m" id="mTg">—</div>
+        <div class="m" id="mTgChats"></div>
+        <div class="controles">
+          <input id="tgToken" type="password" placeholder="Token do @BotFather" autocomplete="off"
+                 style="flex:1;min-width:150px;font:inherit;font-size:13px;padding:6px 10px;border-radius:6px;border:1px solid var(--borda);background:var(--bg);color:var(--texto)">
+          <button class="prim" id="btnTgSalvar">Salvar token</button>
+          <button id="btnTgTeste">Enviar teste</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card c-eventos">
+    <div class="eventos-topo">
+      <h2>Histórico de eventos</h2>
+      <button id="btnLimpar">Limpar</button>
+    </div>
+    <div class="lista" id="lista"><div class="vazio-txt">Nenhum evento ainda.</div></div>
+    <div class="ranking" id="ranking"></div>
+  </section>
+</main>
+
+<!-- ===== MAQUINISTAS: lista + perfil + horário de trabalho ===== -->
+<main class="view" id="v-maquinistas" hidden>
+  <section class="card c-lista">
+    <h2>Lista de maquinistas</h2>
+    <div id="listaMaq"></div>
+  </section>
+  <section class="card c-perfil">
+    <h2>Perfil do maquinista</h2>
+    <div id="perfilMaq"><div class="vazio-txt">Selecione um maquinista na lista.</div></div>
+  </section>
+  <section class="card c-cheia">
+    <h2>Horário de trabalho — escala da semana</h2>
+    <div class="tabela-wrap"><table id="tabEscala"></table></div>
+  </section>
+</main>
+
+<!-- ===== MOTORISTAS ===== -->
+<main class="view" id="v-motoristas" hidden>
+  <section class="card c-cheia">
+    <h2>Motoristas que buscam/levam maquinistas</h2>
+    <div class="tabela-wrap"><table id="tabMot"></table></div>
+  </section>
+</main>
+
+<!-- ===== SALA DE CONTROLE: agente aloca motorista ===== -->
+<main class="view" id="v-sala" hidden>
+  <section class="card c-cheia">
+    <div class="sala-topo">
+      <div>
+        <h2 style="margin:0">Sala de controle — agente da sala</h2>
+        <div style="color:var(--suave);font-size:13px;margin-top:4px">
+          Simulação acelerada: 1 minuto = <span id="segPorMin">1</span> s real.
+        </div>
+      </div>
+      <label class="chave"><input type="checkbox" id="chkAuto"><span class="trilho"></span>
+        <span>Agente automático (simulado)</span></label>
+    </div>
+    <div class="kpis">
+      <div class="metrica"><div class="v" id="kPend">0</div><div class="l">Solicitações pendentes</div></div>
+      <div class="metrica"><div class="v" id="kAndamento">0</div><div class="l">Corridas em andamento</div></div>
+      <div class="metrica"><div class="v" id="kLivres">0</div><div class="l">Motoristas disponíveis</div></div>
+      <div class="metrica"><div class="v" id="kConcl">0</div><div class="l">Corridas concluídas</div></div>
+    </div>
+  </section>
+
+  <section class="card c-meia">
+    <h2>Nova solicitação de motorista</h2>
+    <div class="form-sol">
+      <select id="fMaq"></select>
+      <select id="fMotivo"></select>
+      <button class="prim" id="btnSolicitar">Solicitar</button>
+    </div>
+    <h3>Solicitações pendentes</h3>
+    <div id="listaSol"></div>
+  </section>
+
+  <section class="card c-meia">
+    <h2>Corridas em andamento</h2>
+    <div id="listaCorr"></div>
+    <h3>Concluídas recentemente</h3>
+    <div class="tabela-wrap"><table id="tabConcl"></table></div>
+  </section>
+
+  <section class="card c-cheia">
+    <h2>Registro da sala de controle</h2>
+    <div class="lista" id="logSala" style="max-height:260px"></div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<div id="alerta">
+  <div class="grande">⚠ DORMINDO ⚠</div>
+  <div class="quem" id="alertaQuem">Operador</div>
+  <button id="btnSilenciar">Silenciar este alerta</button>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const TEXTOS = {
+  ACORDADO:  ["ACORDADO", "Olhos abertos — tudo normal"],
+  SONOLENTO: ["SONOLENTO", "Olhos fechando — atenção"],
+  DORMINDO:  ["DORMINDO", "Olhos fechados por tempo demais!"],
+  SEM_ROSTO: ["SEM ROSTO", "Nenhum rosto na frente da câmera"],
+  DESCONHECIDO: ["—", "Aguardando detector..."]
+};
+
+let somAtivo = false, audioCtx = null, silenciadoAte = null, ultimoEstado = null;
+
+function beep() {
+  if (!somAtivo || !audioCtx) return;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = "square"; o.frequency.value = 880;
+  g.gain.setValueAtTime(0.25, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + 0.35);
+}
+setInterval(() => {
+  if (ultimoEstado === "DORMINDO" && silenciadoAte !== "DORMINDO") beep();
+}, 600);
+
+$("btnSom").onclick = () => {
+  somAtivo = !somAtivo;
+  if (somAtivo && !audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  $("btnSom").textContent = somAtivo ? "🔊 Som ativado" : "🔇 Ativar som de alerta";
+  if (somAtivo) beep();
+};
+$("btnSilenciar").onclick = () => { silenciadoAte = "DORMINDO"; $("alerta").classList.remove("on"); };
+
+const post = (url, body) => fetch(url, { method: "POST", headers: {"Content-Type": "application/json"},
+                                        body: JSON.stringify(body || {}) }).then(r => r.json()).catch(() => {});
+$("btnDetIniciar").onclick = () => post("/api/detector/iniciar");
+$("btnDetParar").onclick = () => post("/api/detector/parar");
+$("btnEncerrar").onclick = () => post("/api/operador/encerrar");
+$("btnSair").onclick = () => post("/api/logout");
+
+// ---- Login: lista de funcionários lida do ParteRFID.ino ----
+async function carregarFuncionarios() {
+  try {
+    const lista = await (await fetch("/api/funcionarios")).json();
+    $("listaFunc").innerHTML = lista.length ? "" : '<div class="vazio-txt">Nenhum funcionário encontrado no ParteRFID.ino</div>';
+    lista.forEach(f => {
+      const b = document.createElement("button");
+      b.innerHTML = `<b>${esc(f.nome)}</b><span>${esc(f.cargo)}</span>`;
+      b.onclick = () => post("/api/login/teste", { epc: f.epc });
+      $("listaFunc").appendChild(b);
+    });
+  } catch (e) { setTimeout(carregarFuncionarios, 2000); }
+}
+
+function renderLogin(d) {
+  const logado = !!d.operador;
+  $("telaLogin").hidden = logado;
+  $("usuario").hidden = !logado;
+  $("btnSair").hidden = !logado;
+  if (logado) {
+    $("usuarioIni").textContent = d.operador.nome.charAt(0).toUpperCase();
+    $("usuarioNome").textContent = `${d.operador.nome} · ${d.operador.cargo}`;
+  }
+  $("loginPonto").className = "ponto " + classePonto(d.rfid.status);
+  $("loginStatus").textContent = d.rfid.status === "conectado" ? "Leitor RFID conectado" :
+    `Leitor RFID: ${d.rfid.status}${d.rfid.mensagem ? " — " + d.rfid.mensagem : ""}`;
+  const err = d.login_erro;
+  $("loginErro").hidden = !err;
+  if (err) $("loginErro").textContent = `Crachá não cadastrado (${hora(err.hora)}). EPC: ${err.epc}`;
+}
+$("btnLimpar").onclick = () => post("/api/eventos/limpar");
+$("btnPorta").onclick = () => post("/api/rfid/porta", { porta: $("selPorta").value });
+$("btnPortas").onclick = carregarPortas;
+
+async function carregarPortas() {
+  try {
+    const portas = await (await fetch("/api/portas")).json();
+    const sel = $("selPorta"), atual = sel.value;
+    sel.innerHTML = '<option value="AUTO">Automático</option><option value="DESLIGADO">Desligado</option>';
+    portas.forEach(p => {
+      const o = document.createElement("option");
+      o.value = p.porta; o.textContent = `${p.porta} — ${p.descricao}`;
+      sel.appendChild(o);
+    });
+    sel.value = [...sel.options].some(o => o.value === atual) ? atual : "AUTO";
+  } catch (e) {}
+}
+
+// ---- Vídeo: <img> apontando para o MJPEG repassado pelo servidor ----
+const video = $("video");
+let videoOk = false, videoPid = null, videoTentando = false;
+function conectarVideo() {
+  videoTentando = true;
+  video.src = "/video?t=" + Date.now();
+}
+video.onload = () => {            // primeiro frame chegou
+  videoOk = true; videoTentando = false;
+  video.hidden = false; $("videoAviso").hidden = true; $("aoVivo").hidden = false;
+};
+video.onerror = () => {           // vídeo ainda não está disponível: tenta de novo
+  videoOk = false; videoTentando = false;
+  video.hidden = true; $("aoVivo").hidden = true; $("videoAviso").hidden = false;
+  setTimeout(conectarVideo, 2000);
+};
+
+function atualizarVideo(d) {
+  const det = d.detector;
+  if (d.modo_demo) {
+    $("videoAviso").textContent = "Modo demo: sem câmera.";
+    return;
+  }
+  if (!videoOk && det.pid && video.naturalWidth > 0) video.onload();
+  // detector reiniciou -> reconecta o vídeo
+  if (det.pid && det.pid !== videoPid) { videoPid = det.pid; if (!videoTentando) conectarVideo(); }
+  if (!det.pid) {
+    videoPid = null; video.hidden = true; $("aoVivo").hidden = true; $("videoAviso").hidden = false;
+    $("videoAviso").textContent = det.status === "erro" ? "Detector com erro — veja em Conexões." : "Detector parado.";
+  } else if (!videoOk) {
+    $("videoAviso").textContent = det.status === "conectando" ? "Conectando ao ESP32-CAM..." : "Aguardando vídeo do detector...";
+  }
+  $("videoBox").classList.toggle("dormindo", d.sono.estado === "DORMINDO");
+}
+
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const hora = s => s ? s.split(" ")[1] : "—";
+const classePonto = st => ({rodando:"ok", conectado:"ok", conectando:"wait", erro:"err"}[st] || "");
+
+function render(d) {
+  $("tagDemo").hidden = !d.modo_demo;
+  $("relogio").textContent = hora(d.hora_servidor);
+  renderLogin(d);
+  if (d.fonte_camera) $("fonteCamera").textContent = d.fonte_camera;
+  atualizarVideo(d);
+  if (d.sala) {
+    ultimoSala = d.sala; ultimoSono = d.sono.estado;
+    renderMaquinistas(d.sala, d.sono.estado);
+    renderMotoristas(d.sala);
+    renderSala(d.sala, d.eventos);
+  }
+  renderTelegram(d.telegram);
+
+  // ---- Sono ----
+  const s = d.sono, est = s.estado in TEXTOS ? s.estado : "DESCONHECIDO";
+  $("estadoBox").className = "estado-grande e-" + est;
+  $("estadoRot").textContent = TEXTOS[est][0];
+  $("estadoSub").textContent = TEXTOS[est][1];
+  $("mEar").textContent = s.ear != null ? s.ear.toFixed(2) : "—";
+  const pct = s.ear != null ? Math.min(100, s.ear / 0.35 * 100) : 0;
+  $("barEar").style.width = pct + "%";
+  $("barEar").style.background = s.ear == null ? "var(--cinza)" : s.ear < 0.22 ? "var(--vermelho)" : "var(--verde)";
+  $("mFechado").textContent = s.tempo_fechado != null ? s.tempo_fechado.toFixed(1) + " s" : "—";
+  $("mDesde").textContent = hora(s.desde);
+
+  // ---- Operador ----
+  const op = d.operador;
+  $("avatar").textContent = op ? op.nome.charAt(0).toUpperCase() : "?";
+  $("avatar").classList.toggle("vazio", !op);
+  $("opNome").textContent = op ? op.nome : "Ninguém identificado";
+  $("opCargo").textContent = op ? op.cargo : "Aproxime o crachá do leitor";
+  $("opDesde").textContent = op ? op.desde : "—";
+  $("opEpc").textContent = op ? op.epc : "—";
+  $("opAlertas").textContent = op ? (d.alertas_por_operador[op.nome] || 0) : 0;
+  const u = d.ultimo_cracha;
+  $("ultLeitura").textContent = u ? `${hora(u.hora)} · ${u.cadastrado ? u.nome : "não cadastrado"} · ${u.rssi != null ? u.rssi + " dBm" : "login de teste"}` : "—";
+
+  // Ligação entre as duas partes: quem + como está
+  const v = $("vinculo");
+  const nome = op ? op.nome : "Operador não identificado";
+  const cores = {
+    ACORDADO: ["rgba(34,197,94,.15)", "var(--verde)", `✔ ${nome} está acordado`],
+    SONOLENTO: ["rgba(234,179,8,.15)", "var(--amarelo)", `⚠ ${nome} está ficando sonolento`],
+    DORMINDO: ["var(--vermelho)", "#fff", `✖ ${nome} está DORMINDO!`],
+    SEM_ROSTO: ["rgba(100,116,139,.18)", "#cbd5e1", `${nome} não aparece na câmera`],
+    DESCONHECIDO: ["rgba(100,116,139,.12)", "var(--suave)", "Sem dados da câmera"]
+  }[est];
+  v.style.background = cores[0]; v.style.color = cores[1]; v.textContent = cores[2];
+
+  // ---- Alerta tela cheia ----
+  if (est !== "DORMINDO") silenciadoAte = null;
+  $("alertaQuem").textContent = op ? `${op.nome} — ${op.cargo}` : "Operador não identificado";
+  $("alerta").classList.toggle("on", !!op && est === "DORMINDO" && silenciadoAte !== "DORMINDO");
+  ultimoEstado = est;
+  document.title = est === "DORMINDO" ? "⚠ DORMINDO — Painel" : "Painel do Maquinista";
+
+  // ---- Conexões ----
+  $("pDet").className = "ponto " + classePonto(d.detector.status);
+  $("mDet").textContent = `${d.detector.status.toUpperCase()}${d.detector.mensagem ? " — " + d.detector.mensagem : ""}`;
+  $("pRfid").className = "ponto " + classePonto(d.rfid.status);
+  $("mRfid").textContent = `${d.rfid.status.toUpperCase()}${d.rfid.mensagem ? " — " + d.rfid.mensagem : ""}`;
+
+  // ---- Eventos ----
+  $("lista").innerHTML = d.eventos.length
+    ? d.eventos.map(e => `<div class="evento ${e.nivel}"><span class="h">${esc(hora(e.hora))}</span><span>${esc(e.descricao)}</span></div>`).join("")
+    : '<div class="vazio-txt">Nenhum evento ainda.</div>';
+  const rk = Object.entries(d.alertas_por_operador).sort((a, b) => b[1] - a[1]);
+  $("ranking").textContent = rk.length ? "Alertas de sono por operador: " + rk.map(([n, c]) => `${n} (${c})`).join(", ") : "";
+}
+
+// ======================= ABAS =======================
+function irPara(aba) {
+  document.querySelectorAll("#abas button").forEach(b => b.classList.toggle("ativa", b.dataset.aba === aba));
+  document.querySelectorAll("main.view").forEach(v => v.hidden = v.id !== "v-" + aba);
+}
+document.querySelectorAll("#abas button").forEach(b => b.onclick = () => irPara(b.dataset.aba));
+
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.style.display = "block";
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = "none", 3500);
+}
+async function acao(url, body) {
+  try {
+    const r = await fetch(url, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {}) });
+    const j = await r.json();
+    if (!r.ok || j.ok === false) toast(j.erro || "Erro");
+    return j;
+  } catch (e) { toast("Sem conexão com o servidor"); }
+}
+// só redesenha um bloco quando os dados dele mudarem (não atrapalha cliques/selects)
+const cache = {};
+function mudou(chave, valor) { const s = JSON.stringify(valor); if (cache[chave] === s) return false; cache[chave] = s; return true; }
+
+let maqSel = null, ultimoSala = null, ultimoSono = null;
+const ETAPAS = ["A_CAMINHO", "EMBARQUE", "EM_VIAGEM", "CONCLUIDA"];
+const ROT_ETAPA = {A_CAMINHO: "A caminho", EMBARQUE: "Embarque", EM_VIAGEM: "Em viagem", CONCLUIDA: "Concluída", CANCELADA: "Cancelada"};
+const FINAL = e => e === "CONCLUIDA" || e === "CANCELADA";
+const ini = n => (n || "?").trim().charAt(0).toUpperCase();
+const CORES_AV = ["#3b82f6", "#8b5cf6", "#0ea5e9", "#14b8a6", "#f97316", "#ec4899", "#22c55e"];
+const corAvatar = id => CORES_AV[[...id].reduce((a, c) => a + c.charCodeAt(0), 0) % CORES_AV.length];
+const hojeIdx = () => (new Date().getDay() + 6) % 7;  // 0 = segunda
+
+function badgesMaq(m, sono) {
+  const b = [];
+  if (m.logado) b.push('<span class="badge b-azul">LOGADO</span>');
+  if (m.logado && sono === "DORMINDO") b.push('<span class="badge b-vermelho">DORMINDO</span>');
+  b.push(m.turno_info.em_turno ? '<span class="badge b-verde">EM TURNO</span>' : '<span class="badge b-cinza">FOLGA</span>');
+  if (m.corrida_ativa) b.push('<span class="badge b-amarelo">EM TRANSPORTE</span>');
+  else if (m.solicitacao_pendente) b.push('<span class="badge b-amarelo">AGUARDANDO MOTORISTA</span>');
+  return b.join("");
+}
+
+// ---------------- Maquinistas: lista, perfil, escala ----------------
+function renderMaquinistas(sala, sono) {
+  if (!maqSel && sala.maquinistas.length) maqSel = (sala.maquinistas.find(m => m.logado) || sala.maquinistas[0]).id;
+
+  if (mudou("listaMaq", [sala.maquinistas, maqSel, sono])) {
+    $("listaMaq").innerHTML = sala.maquinistas.map(m => `
+      <div class="item ${m.id === maqSel ? "sel" : ""}" data-id="${esc(m.id)}">
+        <div class="avatar" style="background:${corAvatar(m.id)}">${esc(ini(m.nome))}</div>
+        <div style="min-width:0"><div class="nm">${esc(m.nome)}</div>
+          <div class="sb">${esc(m.cargo)} · ${esc(m.matricula)} · ${esc(m.base)}</div></div>
+        <div class="badges">${badgesMaq(m, sono)}</div>
+      </div>`).join("");
+  }
+
+  const m = sala.maquinistas.find(x => x.id === maqSel);
+  const corridasM = sala.corridas.filter(c => c.maquinista_id === maqSel).map(c => [c.id, c.motorista, c.motivo, c.etapa, c.inicio]);
+  if (m && mudou("perfil", [m, corridasM, sono])) {
+    const h = hojeIdx();
+    $("perfilMaq").innerHTML = `
+      <div class="perfil-topo">
+        <div class="avatar" style="background:${corAvatar(m.id)}">${esc(ini(m.nome))}</div>
+        <div style="flex:1;min-width:0">
+          <div class="nome">${esc(m.nome)}</div>
+          <div style="color:var(--suave)">${esc(m.cargo)} · ${esc(m.trem)}</div>
+          <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">${badgesMaq(m, sono)}</div>
+        </div>
+        <button class="prim" id="btnPedirMot">Solicitar motorista</button>
+      </div>
+      <div class="grid-info">
+        <div><span>Matrícula</span>${esc(m.matricula)}</div>
+        <div><span>Telefone</span>${esc(m.telefone)}</div>
+        <div><span>Base / estação</span>${esc(m.base)}</div>
+        <div><span>Endereço (embarque)</span>${esc(m.endereco)}</div>
+        <div><span>Crachá RFID (EPC)</span>${m.epc ? esc(m.epc) : '<i style="color:var(--suave)">sem crachá</i>'}</div>
+        <div><span>Alertas de sono</span>${m.alertas}</div>
+      </div>
+      <h3>Horário de trabalho</h3>
+      <div style="font-size:14px">${esc(m.turno.inicio)} às ${esc(m.turno.fim)} — <b>${esc(m.turno_info.texto)}</b></div>
+      <div class="escala">${sala.dias.map((d, i) => {
+        const t = m.turno.dias.includes(i);
+        return `<div class="${t ? "trab" : "folga"} ${i === h ? "hoje" : ""}"><b>${d}</b>${t ? esc(m.turno.inicio) + "<br>" + esc(m.turno.fim) : "Folga"}</div>`;
+      }).join("")}</div>
+      <h3>Transportes nesta sessão</h3>
+      ${corridasM.length ? `<div class="tabela-wrap"><table>
+          <tr><th>Corrida</th><th>Motorista</th><th>Motivo</th><th>Etapa</th><th>Início</th></tr>
+          ${corridasM.map(c => `<tr><td>${esc(c[0])}</td><td>${esc(c[1])}</td><td>${esc(c[2])}</td><td>${esc(ROT_ETAPA[c[3]])}</td><td>${esc(c[4])}</td></tr>`).join("")}
+        </table></div>` : '<div class="vazio-txt">Nenhum transporte registrado.</div>'}`;
+  }
+
+  if (mudou("escala", sala.maquinistas.map(m => [m.id, m.nome, m.turno, m.turno_info.em_turno]))) {
+    const h = hojeIdx();
+    $("tabEscala").innerHTML =
+      `<tr><th>Maquinista</th>${sala.dias.map((d, i) => `<th style="${i === h ? "color:var(--texto)" : ""}">${d}${i === h ? " (hoje)" : ""}</th>`).join("")}<th>Agora</th></tr>` +
+      sala.maquinistas.map(m => `<tr>
+        <td><b>${esc(m.nome)}</b><div style="font-size:12px;color:var(--suave)">${esc(m.cargo)}</div></td>
+        ${sala.dias.map((d, i) => `<td style="font-size:13px;${i === h ? "background:rgba(59,130,246,.06)" : ""}">${
+          m.turno.dias.includes(i) ? esc(m.turno.inicio) + "–" + esc(m.turno.fim) : '<span style="color:var(--suave)">folga</span>'}</td>`).join("")}
+        <td>${m.turno_info.em_turno ? '<span class="badge b-verde">EM TURNO</span>' : '<span class="badge b-cinza">FOLGA</span>'}</td>
+      </tr>`).join("");
+  }
+}
+$("listaMaq").onclick = e => {
+  const it = e.target.closest(".item"); if (!it) return;
+  maqSel = it.dataset.id; if (ultimoSala) renderMaquinistas(ultimoSala, ultimoSono);
+};
+$("perfilMaq").onclick = e => {
+  if (e.target.id !== "btnPedirMot") return;
+  $("fMaq").value = maqSel; irPara("sala");
+};
+$("btnVerPerfil").onclick = () => {
+  const m = ultimoSala && ultimoSala.maquinistas.find(x => x.logado);
+  if (m) maqSel = m.id;
+  irPara("maquinistas");
+};
+
+// ---------------- Motoristas ----------------
+function renderMotoristas(sala) {
+  const ativas = sala.corridas.filter(c => !FINAL(c.etapa)).map(c => [c.id, c.etapa, c.maquinista]);
+  if (!mudou("mot", [sala.motoristas, ativas])) return;
+  const corr = id => sala.corridas.find(c => c.id === id);
+  $("tabMot").innerHTML =
+    `<tr><th>Motorista</th><th>Veículo</th><th>Placa</th><th>Telefone</th><th>Distância</th><th>Status</th><th>Corrida atual</th></tr>` +
+    sala.motoristas.map(d => {
+      const c = d.corrida ? corr(d.corrida) : null;
+      return `<tr>
+        <td><div style="display:flex;align-items:center;gap:10px"><div class="avatar" style="width:32px;height:32px;font-size:13px;background:${corAvatar(d.id)}">${esc(ini(d.nome))}</div><b>${esc(d.nome)}</b></div></td>
+        <td>${esc(d.veiculo)}</td><td>${esc(d.placa)}</td><td>${esc(d.telefone)}</td><td>~${d.distancia_min} min</td>
+        <td>${d.status === "DISPONIVEL" ? '<span class="badge b-verde">DISPONÍVEL</span>' : '<span class="badge b-amarelo">EM ROTA</span>'}</td>
+        <td>${c ? `${esc(c.id)} · buscando ${esc(c.maquinista)} · ${esc(ROT_ETAPA[c.etapa])}` : "—"}</td>
+      </tr>`;
+    }).join("");
+}
+
+// ---------------- Sala de controle ----------------
+function renderSala(sala, eventos) {
+  const ativas = sala.corridas.filter(c => !FINAL(c.etapa));
+  const finais = sala.corridas.filter(c => FINAL(c.etapa));
+  const livres = sala.motoristas.filter(d => d.status === "DISPONIVEL").sort((a, b) => a.distancia_min - b.distancia_min);
+
+  $("segPorMin").textContent = sala.seg_por_min;
+  $("chkAuto").checked = sala.auto;
+  $("kPend").textContent = sala.solicitacoes.length;
+  $("kAndamento").textContent = ativas.length;
+  $("kLivres").textContent = `${livres.length}/${sala.motoristas.length}`;
+  $("kConcl").textContent = finais.filter(c => c.etapa === "CONCLUIDA").length;
+  $("contSol").hidden = !sala.solicitacoes.length;
+  $("contSol").textContent = sala.solicitacoes.length;
+
+  if (mudou("fMaq", sala.maquinistas.map(m => m.id + m.nome))) {
+    const v = $("fMaq").value;
+    $("fMaq").innerHTML = sala.maquinistas.map(m => `<option value="${esc(m.id)}">${esc(m.nome)} — ${esc(m.cargo)}</option>`).join("");
+    if (v) $("fMaq").value = v;
+  }
+  if (mudou("fMotivo", sala.motivos)) $("fMotivo").innerHTML = sala.motivos.map(x => `<option>${esc(x)}</option>`).join("");
+
+  // Solicitações pendentes (com escolha do motorista)
+  if (mudou("sol", [sala.solicitacoes, livres.map(d => [d.id, d.distancia_min]), sala.sugerido, sala.auto])) {
+    const escolhidos = {};
+    $("listaSol").querySelectorAll("select[data-sol]").forEach(s => escolhidos[s.dataset.sol] = s.value);
+    $("listaSol").innerHTML = sala.solicitacoes.length ? sala.solicitacoes.map(s => `
+      <div class="sol ${s.prioridade}">
+        <div class="linha1">
+          <b>${esc(s.maquinista)} <span style="color:var(--suave);font-weight:400">· ${esc(s.cargo)}</span></b>
+          <span>${s.prioridade === "alta" ? '<span class="badge b-vermelho">PRIORIDADE ALTA</span> ' : ""}<span class="badge b-cinza">${esc(s.id)}</span></span>
+        </div>
+        <div class="rota"><b>${esc(s.motivo)}</b> · ${esc(s.origem)} → ${esc(s.destino)}<br>Pedido às ${esc(s.hora)} por ${esc(s.criado_por)}</div>
+        <div class="acoes">
+          <select data-sol="${esc(s.id)}">${livres.length
+            ? livres.map(d => `<option value="${esc(d.id)}">${esc(d.nome)} — ${esc(d.veiculo)} (~${d.distancia_min} min)${d.id === sala.sugerido ? " ★ sugerido" : ""}</option>`).join("")
+            : '<option value="">Nenhum motorista livre</option>'}</select>
+          <button class="prim" data-alocar="${esc(s.id)}" ${livres.length ? "" : "disabled"}>Alocar</button>
+          <button data-cancsol="${esc(s.id)}">Cancelar</button>
+        </div>
+        ${sala.auto ? '<div style="font-size:12px;color:var(--suave);margin-top:6px">Agente automático vai alocar o motorista sugerido em instantes...</div>' : ""}
+      </div>`).join("") : '<div class="vazio-txt">Nenhuma solicitação pendente.</div>';
+    $("listaSol").querySelectorAll("select[data-sol]").forEach(s => {
+      if (escolhidos[s.dataset.sol] && [...s.options].some(o => o.value === escolhidos[s.dataset.sol])) s.value = escolhidos[s.dataset.sol];
+    });
+  }
+
+  // Corridas em andamento: estrutura só muda quando muda a etapa; barras atualizam sempre
+  if (mudou("corr", ativas.map(c => [c.id, c.etapa]))) {
+    $("listaCorr").innerHTML = ativas.length ? ativas.map(c => `
+      <div class="corrida">
+        <div class="linha1">
+          <b>${esc(c.motorista)} → ${esc(c.maquinista)}</b>
+          <span>${c.prioridade === "alta" ? '<span class="badge b-vermelho">ALTA</span> ' : ""}<span class="badge b-azul">${esc(ROT_ETAPA[c.etapa])}</span></span>
+        </div>
+        <div class="rota">${esc(c.veiculo)} ${esc(c.placa)} · ${esc(c.motivo)}<br>${esc(c.origem)} → ${esc(c.destino)}<br>
+          Alocado às ${esc(c.inicio)} por ${esc(c.alocado_por)} · <b id="eta-${esc(c.id)}"></b></div>
+        <div class="etapas">${ETAPAS.map((e, k) => `<div><i id="pb-${esc(c.id)}-${k}"></i></div>`).join("")}</div>
+        <div class="etapas-rot">${ETAPAS.map(e => `<span class="${e === c.etapa ? "at" : ""}">${ROT_ETAPA[e]}</span>`).join("")}</div>
+        <div style="margin-top:8px"><button data-canccorr="${esc(c.id)}">Cancelar corrida</button></div>
+      </div>`).join("") : '<div class="vazio-txt">Nenhuma corrida em andamento.</div>';
+  }
+  ativas.forEach(c => {
+    const atual = ETAPAS.indexOf(c.etapa);
+    const frac = c.etapa_total_s > 0 ? Math.min(1, Math.max(0, 1 - c.restante_s / c.etapa_total_s)) : 1;
+    ETAPAS.forEach((e, k) => {
+      const el = $(`pb-${c.id}-${k}`);
+      if (el) el.style.width = (k < atual ? 100 : k === atual ? frac * 100 : 0) + "%";
+    });
+    const min = Math.max(0, Math.ceil(c.restante_s / sala.seg_por_min));
+    const txt = {A_CAMINHO: `chega em ~${min} min`, EMBARQUE: `embarcando (${min} min)`, EM_VIAGEM: `entrega em ~${min} min`}[c.etapa] || "";
+    const el = $(`eta-${c.id}`); if (el) el.textContent = txt;
+  });
+
+  if (mudou("concl", finais.map(c => [c.id, c.etapa]))) {
+    $("tabConcl").innerHTML = finais.length
+      ? `<tr><th>Corrida</th><th>Maquinista</th><th>Motorista</th><th>Motivo</th><th>Fim</th></tr>` +
+        finais.map(c => `<tr><td>${esc(c.id)}</td><td>${esc(c.maquinista)}</td><td>${esc(c.motorista)}</td><td>${esc(c.motivo)}</td>
+          <td>${c.etapa === "CANCELADA" ? '<span class="badge b-cinza">CANCELADA</span>' : esc(c.fim)}</td></tr>`).join("")
+      : '<tr><td class="vazio-txt">Nenhuma ainda.</td></tr>';
+  }
+
+  const logSala = eventos.filter(e => e.tipo === "SALA");
+  if (mudou("logSala", logSala.map(e => e.hora + e.descricao))) {
+    $("logSala").innerHTML = logSala.length
+      ? logSala.map(e => `<div class="evento ${e.nivel}"><span class="h">${esc(hora(e.hora))}</span><span>${esc(e.descricao)}</span></div>`).join("")
+      : '<div class="vazio-txt">Nada registrado ainda.</div>';
+  }
+}
+$("listaSol").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.alocar) {
+    const sel = $("listaSol").querySelector(`select[data-sol="${b.dataset.alocar}"]`);
+    acao("/api/sala/alocar", { solicitacao_id: b.dataset.alocar, motorista_id: sel ? sel.value : "" });
+  } else if (b.dataset.cancsol) {
+    acao("/api/sala/cancelar_solicitacao", { id: b.dataset.cancsol });
+  }
+};
+$("listaCorr").onclick = e => {
+  const b = e.target.closest("button[data-canccorr]");
+  if (b) acao("/api/sala/cancelar_corrida", { id: b.dataset.canccorr });
+};
+$("btnSolicitar").onclick = () => acao("/api/sala/solicitar", { maquinista_id: $("fMaq").value, motivo: $("fMotivo").value });
+$("chkAuto").onchange = e => acao("/api/sala/auto", { ativo: e.target.checked });
+
+// ---------------- Telegram ----------------
+function renderTelegram(tg) {
+  if (!tg) return;
+  $("pTg").className = "ponto " + ({conectado: "ok", conectando: "wait", erro: "err"}[tg.status] || "");
+  $("mTg").textContent = `${tg.status.toUpperCase()} — ${tg.mensagem}`;
+  $("mTgChats").textContent = tg.chats.length ? "Recebendo avisos: " + tg.chats.join(", ") : "";
+  $("tgToken").placeholder = tg.configurado ? "Token salvo (cole outro para trocar)" : "Token do @BotFather";
+}
+$("btnTgSalvar").onclick = async () => {
+  const token = $("tgToken").value.trim();
+  if (!token) return toast("Cole o token gerado pelo @BotFather");
+  const r = await acao("/api/telegram/config", { token });
+  if (r && r.ok) { $("tgToken").value = ""; toast("Token salvo. Agora mande /start para o bot no Telegram."); }
+};
+$("btnTgTeste").onclick = async () => {
+  const r = await acao("/api/telegram/teste");
+  if (r && r.ok) toast("Mensagem de teste enviada!");
+};
+
+async function atualizar() {
+  try {
+    const r = await fetch("/api/estado", { cache: "no-store" });
+    render(await r.json());
+    $("offline").style.display = "none";
+  } catch (e) {
+    $("offline").style.display = "block";
+  }
+  setTimeout(atualizar, 400);
+}
+carregarPortas();
+carregarFuncionarios();
+atualizar();
+</script>
+</body>
+</html>
