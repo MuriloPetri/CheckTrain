@@ -33,6 +33,18 @@ cond = threading.Condition()
 _imshow_original = cv2.imshow
 
 
+_janelas_abertas = set()
+
+
+def encerrar(motivo):
+    print(f"[JANELA] {motivo}", flush=True)
+    try:
+        cv2.destroyAllWindows()
+    except Exception:
+        pass
+    os._exit(0)
+
+
 def imshow_interceptado(nome, frame):
     ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
     if ok:
@@ -41,7 +53,26 @@ def imshow_interceptado(nome, frame):
             ultimo["n"] += 1
             cond.notify_all()
     if MOSTRAR_JANELA:
+        # Se o usuário fechou a janela no X, encerra (senão o imshow reabriria a janela)
+        if nome in _janelas_abertas:
+            try:
+                visivel = cv2.getWindowProperty(nome, cv2.WND_PROP_VISIBLE)
+            except cv2.error:
+                visivel = 0
+            if visivel < 1:
+                encerrar("fechada pelo usuario")
         _imshow_original(nome, frame)
+        _janelas_abertas.add(nome)
+
+
+def vigiar_servidor():
+    """Fecha o detector se o servidor.py morrer (o stdin, ligado ao servidor, chega ao fim)."""
+    try:
+        while sys.stdin.read(1):
+            pass
+    except Exception:
+        pass
+    os._exit(0)
 
 
 cv2.imshow = imshow_interceptado
@@ -111,6 +142,8 @@ if __name__ == "__main__":
         sys.exit(1)
     caminho = os.path.abspath(sys.argv[1])
     iniciar_servidor_video()
+    if os.environ.get("VIGIAR_SERVIDOR") == "1":
+        threading.Thread(target=vigiar_servidor, daemon=True).start()
     sys.argv = [caminho]
     sys.path.insert(0, os.path.dirname(caminho))
     runpy.run_path(caminho, run_name="__main__")

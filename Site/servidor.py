@@ -258,6 +258,8 @@ def processar_linha_detector(linha):
         set_detector("rodando", "Analisando rosto")
         ao_mudar_sono("SONOLENTO", duracao=float(m.group(1)))
         return
+    if linha.startswith("[JANELA]"):
+        return  # tratado quando o processo termina (código 0)
     if "Aguardando rosto" in linha:
         set_detector("rodando", "Nenhum rosto na câmera")
         ao_mudar_sono("SEM_ROSTO")
@@ -296,11 +298,13 @@ def thread_detector():
         set_detector("conectando", "Iniciando detector_sono.py...")
         env = dict(os.environ, PYTHONUNBUFFERED="1", PYTHONIOENCODING="utf-8",
                    VIDEO_PORTA=str(PORTA_VIDEO), MOSTRAR_JANELA="1" if MOSTRAR_JANELA else "0",
-                   CAMERA_FONTE=str(WEBCAM_INDICE) if FONTE_CAMERA == "webcam" else "")
+                   CAMERA_FONTE=str(WEBCAM_INDICE) if FONTE_CAMERA == "webcam" else "",
+                   VIGIAR_SERVIDOR="1")
         try:
             processo_detector = subprocess.Popen(
                 [sys.executable, "-u", LANCADOR, CAMINHO_DETECTOR],
                 cwd=os.path.dirname(CAMINHO_DETECTOR),
+                stdin=subprocess.PIPE,  # se o servidor morrer, o detector percebe e fecha junto
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, encoding="utf-8", errors="replace", env=env,
             )
@@ -319,7 +323,12 @@ def thread_detector():
             estado["detector"]["pid"] = None
             if estado["detector"]["status"] != "erro":
                 estado["detector"]["status"] = "parado"
-                if estado["detector"]["habilitado"]:
+                if codigo == 0 and estado["detector"]["habilitado"]:
+                    # saída normal = usuário apertou 'q' ou fechou a janela: NÃO reabrir sozinho
+                    estado["detector"]["habilitado"] = False
+                    estado["detector"]["mensagem"] = ("Detector fechado pela janela (tecla q ou X). "
+                                                      "Clique em Reiniciar para abrir de novo.")
+                elif estado["detector"]["habilitado"]:
                     estado["detector"]["mensagem"] = (
                         f"detector_sono.py encerrou (código {codigo}). Reiniciando...")
         ao_mudar_sono("DESCONHECIDO")
