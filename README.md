@@ -42,3 +42,9 @@ Abra http://localhost:8080.
 - **Telegram:** crie um bot no @BotFather, cole o token no painel (Conexões) e mande `/start` para o bot.
   O token fica em `Site/telegram.json`, que **não** vai para o Git.
 - Cadastro de maquinistas e motoristas: `Site/dados.json` (dados de exemplo).
+
+## Parâmetros de conexão
+
+Tamanho das imagens, taxa de quadros e velocidade mínima de rede para a detecção de sonolência (com medições):
+[docs/PARAMETROS_CONEXAO.md](docs/PARAMETROS_CONEXAO.md).
+Para medir: `py -3.12 Site/medir_conexao.py --webcam` ou `--url http://IP_DO_ESP32/stream`.
